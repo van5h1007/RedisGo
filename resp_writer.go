@@ -16,3 +16,14 @@ func writeError(w io.Writer, msg string) error {
 
 	return err
 }
+
+func writeBulkString(w io.Writer, s string) error {
+	_, err := fmt.Fprintf(w, "$%d\r\n%s\r\n", len(s), s)
+
+	return err
+}
+
+func writeNullBulkString(w io.Writer) error {
+	_, err := fmt.Fprintf(w, "$-1\r\n")
+	return err
+}

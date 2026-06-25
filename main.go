@@ -15,17 +15,19 @@ func main() {
 	}
 	log.Println("Listening on port:5001")
 
+	kv := NewKV()
+
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
 			log.Println("accept error:", err)
 			continue
 		}
-		go handleConn(conn)
+		go handleConn(conn, kv)
 	}
 }
 
-func handleConn(conn net.Conn) {
+func handleConn(conn net.Conn, kv *KV) {
 	defer conn.Close()
 
 	r := bufio.NewReader(conn)
@@ -53,25 +55,29 @@ func handleConn(conn net.Conn) {
 			continue
 		}
 
-		if err := handleCommand(conn, cmd); err != nil {
+		if err := handleCommand(conn, cmd, kv); err != nil {
 			log.Println("handle error:", err)
 			return
 		}
 	}
 }
 
-func handleCommand(conn net.Conn, cmd Command) error {
+func handleCommand(conn net.Conn, cmd Command, kv *KV) error {
 	switch c := cmd.(type) {
 	case PingCommand:
 		return writeSimpleString(conn, "PONG")
 
 	case SetCommand:
-		fmt.Printf("SET %s = %s\n", c.key, c.val)
+		kv.Set(c.key, c.val)
 		return writeSimpleString(conn, "OK")
 
 	case GetCommand:
-		fmt.Printf("GET %s (no store yet, returning nil)\n", c.key)
-		return writeSimpleString(conn, "OK")
+		val, ok := kv.Get(c.key)
+
+		if !ok {
+			return writeNullBulkString(conn)
+		}
+		return writeBulkString(conn, val)
 
 	default:
 		return fmt.Errorf("unhandled command type: %T", cmd)
