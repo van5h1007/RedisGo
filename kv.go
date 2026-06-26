@@ -25,3 +25,21 @@ func (kv *KV) Get(key string) (string, bool){
 	val, ok := kv.data[key]
 	return val, ok 
 }
+
+func(kv *KV) Del(key string) bool {
+	kv.mu.Lock()
+	defer kv.mu.Unlock()
+
+	_, existed := kv.data[key]
+	delete(kv.data, key)
+	return existed
+}
+
+func (kv *KV) Exists(key string) bool {
+	kv.mu.Lock()
+	defer kv.mu.Unlock()
+
+	_, ok:= kv.data[key]
+
+	return ok
+}

@@ -124,6 +124,17 @@ func (s *Server) handleMessage(msg Message) error {
 		}
 		return writeBulkString(msg.peer.conn, val)
 
+	case DelCommand:
+		if s.kv.Del(c.key){
+			return writeInteger(msg.peer.conn, 1)
+		}
+		return writeInteger(msg.peer.conn, 0)
+	case ExistsCommand:
+		if s.kv.Exists(c.key){
+			return writeInteger(msg.peer.conn, 1)
+		}
+		return writeInteger(msg.peer.conn, 0)
+
 	default:
 		return fmt.Errorf("unhandled command type: %T", c)
 	}
