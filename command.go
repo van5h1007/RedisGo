@@ -22,6 +22,14 @@ type ExistsCommand struct {
 	key string
 }
 
+type HelloCommand struct {}
+
+type CommandCommand struct {}
+
+type ClientCommand struct {
+	value string
+}
+
 func parseCommand(v Value) (Command, error) {
 	if v.typ != '*' || len(v.array) == 0 {
 		return nil, fmt.Errorf("expected a non empty array but got: %+v", v)
@@ -63,6 +71,19 @@ func parseCommand(v Value) (Command, error) {
 			return nil, fmt.Errorf("EXISTS requires 1 arg, got %d", len(v.array)-1)
 		}
 		return ExistsCommand{key: v.array[1].bulk}, nil
+	
+	case "HELLO", "hello":
+		return HelloCommand{}, nil
+
+	case "COMMAND", "command":
+		return CommandCommand{}, nil
+
+	case "CLIENT", "client":
+		val := ""
+		if len(v.array) >1 {
+			val= v.array[1].bulk
+		}
+		return ClientCommand{value: val}, nil
 
 	default:
 		return nil, fmt.Errorf("unknown command: %q", name)

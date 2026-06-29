@@ -33,3 +33,18 @@ func writeInteger (w io.Writer, n int) error {
 
 	return err
 }
+
+func writeMap(w io.Writer, m map[string]string) error {
+	if _, err := fmt.Fprintf(w, "%%%d\r\n", len(m)); err != nil {
+		return err
+	}
+	for k, v := range m {
+		if err := writeSimpleString(w, k); err != nil {
+			return err
+		}
+		if err := writeSimpleString(w, v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
