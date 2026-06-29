@@ -8,7 +8,11 @@ import (
 	"net"
 )
 
+type Config struct {
+	ListenAddr string
+}
 type Server struct {
+	Config
 	ln    net.Listener
 	kv    *KV
 	peers map[*Peer]bool
@@ -18,8 +22,14 @@ type Server struct {
 	delPeerCh chan *Peer
 }
 
-func NewServer() *Server {
+const defaultListenAddr = ":5001"
+
+func NewServer(cfg Config) *Server {
+	if len(cfg.ListenAddr) ==0 {
+		cfg.ListenAddr = defaultListenAddr
+	}
 	return &Server{
+		Config:    cfg,
 		kv:        NewKV(),
 		peers:     make(map[*Peer]bool),
 		msgCh:     make(chan Message),
@@ -28,8 +38,8 @@ func NewServer() *Server {
 	}
 }
 
-func (s *Server) Start(addr string) error {
-	ln, err := net.Listen("tcp", addr)
+func (s *Server) Start() error {
+	ln, err := net.Listen("tcp", s.ListenAddr)
 
 	if err != nil {
 		return err
@@ -38,7 +48,7 @@ func (s *Server) Start(addr string) error {
 
 	go s.loop()
 
-	log.Println("listening on", addr)
+	log.Println("listening on", s.ListenAddr)
 	return s.acceptLoop()
 }
 
@@ -125,15 +135,23 @@ func (s *Server) handleMessage(msg Message) error {
 		return writeBulkString(msg.peer.conn, val)
 
 	case DelCommand:
-		if s.kv.Del(c.key){
+		if s.kv.Del(c.key) {
 			return writeInteger(msg.peer.conn, 1)
 		}
 		return writeInteger(msg.peer.conn, 0)
 	case ExistsCommand:
-		if s.kv.Exists(c.key){
+		if s.kv.Exists(c.key) {
 			return writeInteger(msg.peer.conn, 1)
 		}
 		return writeInteger(msg.peer.conn, 0)
+	case HelloCommand:
+		spec := map[string]string{"server": "goredis"}
+		return writeMap(msg.peer.conn, spec)
+	case CommandCommand:
+		_, err := msg.peer.conn.Write([]byte("*0\r\n"))
+		return err
+	case ClientCommand:
+		return writeSimpleString(msg.peer.conn, "OK")
 
 	default:
 		return fmt.Errorf("unhandled command type: %T", c)

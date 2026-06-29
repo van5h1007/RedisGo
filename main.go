@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 )
 
@@ -21,9 +22,11 @@ func main() {
 	// 	}
 	// 	go handleConn(conn, kv)
 	// }
-	server := NewServer()
+	listenAddr := flag.String("listenAddr", defaultListenAddr, "server listen address")
+	flag.Parse()
 
-	log.Fatal(server.Start(":5001"))
+	server := NewServer(Config{ListenAddr: *listenAddr})
+	log.Fatal(server.Start())
 }
 
 // func handleConn(conn net.Conn, kv *KV) {
